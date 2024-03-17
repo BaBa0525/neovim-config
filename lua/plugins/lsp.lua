@@ -10,6 +10,9 @@ local M = {
 			vim.api.nvim_create_autocmd("LspAttach", {
 				group = vim.api.nvim_create_augroup("baba-lsp-attach", { clear = true }),
 				callback = function(event)
+					---@param keys string
+					---@param func function
+					---@param desc string
 					local map = function(keys, func, desc)
 						vim.keymap.set("n", keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
 					end
@@ -51,7 +54,14 @@ local M = {
 
 					-- Opens a popup that displays documentation about the word under your cursor.
 					-- See `:help K` for why this keymap
-					map("K", vim.lsp.buf.hover, "Hover Documentation")
+					map("H", vim.lsp.buf.hover, "Hover Documentation")
+
+					vim.keymap.set(
+						{ "n", "i" },
+						"<C-h>",
+						vim.lsp.buf.signature_help,
+						{ buffer = event.buf, desc = "LSP: Show Signature information" }
+					)
 
 					-- The following two autocommands are used to highlight references of the
 					-- word under your cursor when your cursor rests there for a little while.
@@ -79,6 +89,8 @@ local M = {
 				clangd = {},
 				pyright = {},
 				ruff_lsp = {},
+				tsserver = {},
+				dockerls = {},
 
 				lua_ls = {
 					settings = {
@@ -105,6 +117,9 @@ local M = {
 			vim.list_extend(ensure_installed, {
 				"stylua", -- Used to format lua code
 				"ruff", -- Used to format python code
+				"prettier",
+				"prettierd",
+				"asmfmt",
 			})
 
 			require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
@@ -138,6 +153,18 @@ local M = {
 				python = {
 					"ruff_format", -- To run the Ruff formatter
 					"ruff_fix", -- To fix lint errors
+				},
+				javascript = {
+					{ "prettierd", "prettier" },
+				},
+				typescript = {
+					{ "prettierd", "prettier" },
+				},
+				markdown = {
+					{ "prettierd", "prettier" },
+				},
+				asm = {
+					"asmfmt",
 				},
 			},
 		},
@@ -194,27 +221,14 @@ local M = {
 					["<C-p>"] = cmp.mapping.select_prev_item(),
 
 					-- Accept ([y]es) the completion
-					-- This will auto-import if your LSP supports it.
-					-- This will expand snippets if the LSP sent a snippet.
-					["<CR>"] = cmp.mapping.confirm({ select = true }),
-					["<Tab>"] = cmp.mapping(function(fallback)
+					["<C-y>"] = cmp.mapping.confirm({ select = true }),
+					["<C-k>"] = function()
 						if cmp.visible() then
-							cmp.select_next_item()
-						elseif luasnip.expand_or_locally_jumpable() then
-							luasnip.expand_or_jump()
+							cmp.close()
 						else
-							fallback()
+							cmp.complete()
 						end
-					end, { "i", "s" }),
-					["<S-Tab>"] = cmp.mapping(function(fallback)
-						if cmp.visible() then
-							cmp.select_prev_item()
-						elseif luasnip.locally_jumpable(-1) then
-							luasnip.jump(-1)
-						else
-							fallback()
-						end
-					end, { "i", "s" }),
+					end,
 				}),
 				sources = {
 					{ name = "nvim_lsp" },

@@ -1,11 +1,10 @@
 local M = {
 	"nvim-treesitter/nvim-treesitter",
-	build = function()
-		require("nvim-treesitter.install").update({ with_sync = true })()
-	end,
+	build = ":TSUpdate",
 	config = function()
 		local configs = require("nvim-treesitter.configs")
 
+		---@diagnostic disable-next-line: missing-fields
 		configs.setup({
 			-- A list of parser names, or "all"
 			ensure_installed = { "javascript", "typescript", "c", "cpp", "python", "lua" },
