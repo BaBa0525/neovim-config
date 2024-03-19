@@ -91,6 +91,7 @@ local M = {
 				ruff_lsp = {},
 				tsserver = {},
 				dockerls = {},
+				cmake = {},
 
 				lua_ls = {
 					settings = {
