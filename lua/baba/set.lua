@@ -14,10 +14,10 @@ vim.opt.cursorline = true
 vim.opt.showmode = false
 
 vim.diagnostic.config({
-	-- severity = { min = vim.diagnostic.severity.INFO },
-	virtual_text = {
-		severity = { min = vim.diagnostic.severity.INFO },
-	},
+  -- severity = { min = vim.diagnostic.severity.INFO },
+  virtual_text = {
+    severity = { min = vim.diagnostic.severity.INFO },
+  },
 })
 
 vim.api.nvim_set_var("c_syntax_for_h", 1)
