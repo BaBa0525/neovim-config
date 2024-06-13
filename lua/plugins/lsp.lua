@@ -1,3 +1,21 @@
+local function js_fmt(bufnr)
+  local conform = require("conform")
+
+  local biome_info = conform.get_formatter_info("biome", bufnr)
+
+  if string.find(biome_info.command, "node_modules") then
+    return { { "biome" } }
+  end
+
+  local prettier_info = conform.get_formatter_info("prettier", bufnr)
+
+  if string.find(prettier_info.command, "node_modules") then
+    return { { "prettier" } }
+  end
+
+  return { { "biome", "prettier" } }
+end
+
 local M = {
   {
     "neovim/nvim-lspconfig",
@@ -5,6 +23,7 @@ local M = {
       "williamboman/mason.nvim",
       "williamboman/mason-lspconfig.nvim",
       "WhoIsSethDaniel/mason-tool-installer.nvim",
+      "b0o/schemastore.nvim",
     },
     config = function()
       vim.api.nvim_create_autocmd("LspAttach", {
@@ -75,6 +94,24 @@ local M = {
               callback = vim.lsp.buf.clear_references,
             })
           end
+
+          ---@param code_action_kind string
+          local code_action_on_save = function(code_action_kind)
+            if client and client.server_capabilities.codeActionProvider then
+              vim.api.nvim_create_autocmd({ "BufWritePre" }, {
+                buffer = event.buf,
+                callback = function()
+                  vim.lsp.buf.code_action({
+                    context = { only = { code_action_kind } },
+                    apply = true,
+                  })
+                end,
+              })
+            end
+          end
+
+          code_action_on_save("source.fixAll")
+          -- code_action_on_save("source.organizeImports")
         end,
       })
       local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -82,11 +119,35 @@ local M = {
 
       local servers = {
         clangd = {},
-        pyright = {},
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                autoImportCompletions = true,
+                typeCheckingMode = "basic",
+              },
+            },
+          },
+        },
         ruff_lsp = {},
         tsserver = {},
+
+        tailwindcss = {},
+        biome = {},
+        eslint = {},
+        prismals = {},
+
         dockerls = {},
+        docker_compose_language_service = {},
         cmake = {},
+        jsonls = {
+          settings = {
+            json = {
+              schemas = require("schemastore").json.schemas(),
+              validate = { enable = true },
+            },
+          },
+        },
 
         lua_ls = {
           settings = {
@@ -115,8 +176,8 @@ local M = {
         "ruff", -- Used to format python code
         "prettier",
         "prettierd",
-        "asmfmt",
         "clang-format",
+        "sql-formatter",
       })
 
       require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
@@ -142,7 +203,8 @@ local M = {
     opts = {
       notify_on_error = false,
       format_on_save = {
-        timeout_ms = 500,
+        async = true,
+        timeout_ms = 2500,
         lsp_fallback = true,
       },
       formatters_by_ft = {
@@ -151,19 +213,21 @@ local M = {
           "ruff_format", -- To run the Ruff formatter
           "ruff_fix", -- To fix lint errors
         },
-        javascript = {
-          { "prettierd", "prettier" },
-        },
-        typescript = {
-          { "prettierd", "prettier" },
-        },
+        javascript = js_fmt,
+        typescript = js_fmt,
+        typescriptreact = js_fmt,
         markdown = {
           { "prettierd", "prettier" },
         },
-        asm = {
-          "asmfmt",
-        },
         c = { "clang-format" },
+        sql = { "sql_formatter" },
+      },
+      formatters = {
+        sql_formatter = {
+          prepend_args = function()
+            return { "-c", vim.fn.getcwd() .. "/sql_formatter.json" }
+          end,
+        },
       },
     },
   },
@@ -220,6 +284,7 @@ local M = {
 
           -- Accept ([y]es) the completion
           ["<C-y>"] = cmp.mapping.confirm({ select = true }),
+
           ["<C-k>"] = function()
             if cmp.visible() then
               cmp.close()
@@ -227,6 +292,19 @@ local M = {
               cmp.complete()
             end
           end,
+
+          -- <c-l> will move you to the right of each of the expansion locations/
+          -- <c-h> is similar, except moving you backwards.
+          ["<C-l>"] = cmp.mapping(function()
+            if luasnip.expand_or_locally_jumpable() then
+              luasnip.expand_or_jump()
+            end
+          end, { "i", "s" }),
+          ["<C-h>"] = cmp.mapping(function()
+            if luasnip.expand_or_locally_jumpable(-1) then
+              luasnip.expand_or_jump(-1)
+            end
+          end, { "i", "s" }),
         }),
         sources = {
           { name = "nvim_lsp" },
