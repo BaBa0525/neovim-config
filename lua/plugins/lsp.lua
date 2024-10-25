@@ -1,21 +1,3 @@
-local function js_fmt(bufnr)
-  local conform = require("conform")
-
-  local biome_info = conform.get_formatter_info("biome", bufnr)
-
-  if string.find(biome_info.command, "node_modules") then
-    return { { "biome" } }
-  end
-
-  local prettier_info = conform.get_formatter_info("prettier", bufnr)
-
-  if string.find(prettier_info.command, "node_modules") then
-    return { { "prettier" } }
-  end
-
-  return { { "biome", "prettier" } }
-end
-
 local M = {
   {
     "neovim/nvim-lspconfig",
@@ -25,6 +7,7 @@ local M = {
       "WhoIsSethDaniel/mason-tool-installer.nvim",
       "b0o/schemastore.nvim",
     },
+
     config = function()
       vim.api.nvim_create_autocmd("LspAttach", {
         group = vim.api.nvim_create_augroup("baba-lsp-attach", { clear = true }),
@@ -94,24 +77,6 @@ local M = {
               callback = vim.lsp.buf.clear_references,
             })
           end
-
-          ---@param code_action_kind string
-          local code_action_on_save = function(code_action_kind)
-            if client and client.server_capabilities.codeActionProvider then
-              vim.api.nvim_create_autocmd({ "BufWritePre" }, {
-                buffer = event.buf,
-                callback = function()
-                  vim.lsp.buf.code_action({
-                    context = { only = { code_action_kind } },
-                    apply = true,
-                  })
-                end,
-              })
-            end
-          end
-
-          code_action_on_save("source.fixAll")
-          -- code_action_on_save("source.organizeImports")
         end,
       })
       local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -130,10 +95,10 @@ local M = {
           },
         },
         ruff_lsp = {},
-        tsserver = {},
+        -- tsserver = {},
 
         tailwindcss = {},
-        biome = {},
+        -- biome = {},
         eslint = {},
         prismals = {},
 
@@ -195,27 +160,50 @@ local M = {
           end,
         },
       })
+      -- require("lspconfig").tsserver.setup({
+      --   commands = {
+      --     OrganizeImports = {
+      --       organize_imports,
+      --       description = "Organize Imports",
+      --     },
+      --   },
+      -- })
     end,
   },
   {
     -- Autoformat
     "stevearc/conform.nvim",
+    event = { "BufEnter" },
+    cmd = { "ConformInfo" },
+    keys = {
+      {
+        "<leader>f",
+        function()
+          require("conform").format({ async = true, lsp_fallback = true })
+        end,
+        mode = "",
+        desc = "[F]ormat buffer",
+      },
+    },
     opts = {
       notify_on_error = false,
-      format_on_save = {
-        async = true,
-        timeout_ms = 2500,
-        lsp_fallback = true,
-      },
+      format_after_save = function(bufnr)
+        -- Disable with a global or buffer-local variable
+        if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+          return
+        end
+        return { timeout_ms = 500, lsp_format = "fallback" }
+      end,
       formatters_by_ft = {
         lua = { "stylua" },
         python = {
           "ruff_format", -- To run the Ruff formatter
           "ruff_fix", -- To fix lint errors
         },
-        javascript = js_fmt,
-        typescript = js_fmt,
-        typescriptreact = js_fmt,
+        javascript = { { "prettier" } },
+        typescript = { { "prettier" } },
+        javascriptreact = { { "prettier" } },
+        typescriptreact = { { "prettier" } },
         markdown = {
           { "prettierd", "prettier" },
         },
@@ -230,6 +218,32 @@ local M = {
         },
       },
     },
+    config = function(_, opts)
+      require("conform").setup(opts)
+
+      print("After seup Before create command")
+
+      vim.api.nvim_create_user_command("FormatDisable", function(args)
+        print("FormatDiable!")
+        if args.bang then
+          -- FormatDisable! will disable formatting just for this buffer
+          vim.b.disable_autoformat = true
+        else
+          vim.g.disable_autoformat = true
+        end
+      end, {
+        desc = "Disable autoformat-on-save",
+        bang = true,
+      })
+
+      vim.api.nvim_create_user_command("FormatEnable", function()
+        print("FormatEnable!")
+        vim.b.disable_autoformat = false
+        vim.g.disable_autoformat = false
+      end, {
+        desc = "Re-enable autoformat-on-save",
+      })
+    end,
   },
   {
     -- Autocompletion
@@ -317,6 +331,24 @@ local M = {
     -- LSP messages
     "j-hui/fidget.nvim",
     opts = {},
+  },
+  {
+    "pmizio/typescript-tools.nvim",
+    dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
+    config = function()
+      require("typescript-tools").setup({
+        settings = {
+          expose_as_code_action = {
+            "organize_imports",
+            "sort_imports",
+          },
+          jsx_close_tag = {
+            enable = true,
+            filetypes = { "javascriptreact", "typescriptreact" },
+          },
+        },
+      })
+    end,
   },
 }
 
