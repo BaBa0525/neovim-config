@@ -84,7 +84,7 @@ local M = {
 
       local servers = {
         clangd = {},
-        pyright = {
+        basedpyright = {
           settings = {
             python = {
               analysis = {
