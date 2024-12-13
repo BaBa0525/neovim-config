@@ -83,18 +83,18 @@ local M = {
       capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 
       local servers = {
-        clangd = {},
-        basedpyright = {
-          settings = {
-            python = {
-              analysis = {
-                autoImportCompletions = true,
-                typeCheckingMode = "basic",
-              },
-            },
-          },
-        },
-        ruff_lsp = {},
+        -- clangd = {},
+        -- basedpyright = {
+        --   settings = {
+        --     python = {
+        --       analysis = {
+        --         autoImportCompletions = true,
+        --         typeCheckingMode = "basic",
+        --       },
+        --     },
+        --   },
+        -- },
+        -- ruff = {},
         -- tsserver = {},
 
         tailwindcss = {},
@@ -104,7 +104,7 @@ local M = {
 
         dockerls = {},
         docker_compose_language_service = {},
-        cmake = {},
+        -- cmake = {},
         jsonls = {
           settings = {
             json = {
@@ -150,6 +150,9 @@ local M = {
       require("mason-lspconfig").setup({
         handlers = {
           function(server_name)
+            if server_name == "ts_ls" then
+              return
+            end
             local server = servers[server_name] or {}
             require("lspconfig")[server_name].setup({
               cmd = server.cmd,
