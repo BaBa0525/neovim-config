@@ -21,3 +21,12 @@ vim.diagnostic.config({
 })
 
 vim.api.nvim_set_var("c_syntax_for_h", 1)
+
+vim.filetype.add({
+  filename = {
+    ["docker-compose.yml"] = "yaml.docker-compose",
+    ["docker-compose.yaml"] = "yaml.docker-compose",
+    ["compose.yml"] = "yaml.docker-compose",
+    ["compose.yaml"] = "yaml.docker-compose",
+  },
+})

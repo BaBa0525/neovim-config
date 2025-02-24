@@ -95,7 +95,7 @@ local M = {
         --   },
         -- },
         -- ruff = {},
-        -- tsserver = {},
+        ts_ls = {},
 
         tailwindcss = {},
         -- biome = {},
@@ -150,9 +150,6 @@ local M = {
       require("mason-lspconfig").setup({
         handlers = {
           function(server_name)
-            if server_name == "ts_ls" then
-              return
-            end
             local server = servers[server_name] or {}
             require("lspconfig")[server_name].setup({
               cmd = server.cmd,
@@ -203,12 +200,12 @@ local M = {
           "ruff_format", -- To run the Ruff formatter
           "ruff_fix", -- To fix lint errors
         },
-        javascript = { { "prettier" } },
-        typescript = { { "prettier" } },
-        javascriptreact = { { "prettier" } },
-        typescriptreact = { { "prettier" } },
+        javascript = { "prettier" },
+        typescript = { "prettier" },
+        javascriptreact = { "prettier" },
+        typescriptreact = { "prettier" },
         markdown = {
-          { "prettierd", "prettier" },
+          "prettier",
         },
         c = { "clang-format" },
         sql = { "sql_formatter" },
@@ -334,24 +331,6 @@ local M = {
     -- LSP messages
     "j-hui/fidget.nvim",
     opts = {},
-  },
-  {
-    "pmizio/typescript-tools.nvim",
-    dependencies = { "nvim-lua/plenary.nvim", "neovim/nvim-lspconfig" },
-    config = function()
-      require("typescript-tools").setup({
-        settings = {
-          expose_as_code_action = {
-            "organize_imports",
-            "sort_imports",
-          },
-          jsx_close_tag = {
-            enable = true,
-            filetypes = { "javascriptreact", "typescriptreact" },
-          },
-        },
-      })
-    end,
   },
 }
 
